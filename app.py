@@ -182,20 +182,27 @@ def create_gradio_interface():
     
     with gr.Blocks(title="VAPT Agent - API Security Testing") as interface:
         
-        gr.Markdown(
-            """
-            # 🛡️ VAPT Agent - API Security Testing
-            
-            Perform comprehensive vulnerability assessment and penetration testing on your API endpoints.
-            This tool will analyze your API for common security vulnerabilities including:
-            - SQL Injection
-            - Cross-Site Scripting (XSS)
-            - Authentication/Authorization issues
-            - Rate limiting
-            - CORS policy
-            - Security headers
-            """
-        )
+        gr.Markdown("# 🛡️ VAPT Agent - API Security Testing")
+        
+        with gr.Row():
+            with gr.Column(scale=1):
+                gr.Markdown(
+                    """
+                    **Two-Step Automated Security Testing:**
+                    
+                    1️⃣ **API Spec Generation** - Uses Postman MCP Server to auto-discover and document your API  
+                    2️⃣ **VAPT Testing** - Runs comprehensive security tests using custom MCP tools
+                    """
+                )
+            with gr.Column(scale=1):
+                gr.Markdown(
+                    """
+                    **Security Tests Performed:**
+                    
+                    ✓ SQL Injection • XSS • Auth/Authorization  
+                    ✓ Rate Limiting • CORS Policy • Security Headers
+                    """
+                )
         
         with gr.Row():
             with gr.Column(scale=1):
@@ -226,14 +233,8 @@ def create_gradio_interface():
                     submit_btn = gr.Button("🚀 Start Security Test", variant="primary", size="lg")
                     clear_btn = gr.Button("🔄 Clear", variant="secondary")
                 
-                gr.Markdown(
-                    """
-                    ### ⚠️ Disclaimer
-                    
-                    This tool is for **authorized security testing only**. 
-                    Always obtain proper authorization before testing any API endpoints.
-                    Unauthorized testing may be illegal.
-                    """
+                gr.HTML(
+                    "<div style='width: 100%; padding: 8px; background-color: #fff3cd; border-left: 4px solid #ffc107; margin: 8px 0;'>⚠️ <strong>Disclaimer:</strong> This tool is for authorized security testing only. Always obtain proper authorization before testing.</div>"
                 )
             
             with gr.Column(scale=2):
@@ -249,15 +250,15 @@ def create_gradio_interface():
                     )
                 
                 with gr.Tab("Security Report"):
-                    report_output = gr.Markdown(
-                        value="Security report will appear here after the test completes...",
-                        label="VAPT Report"
-                    )
-                    
                     report_file = gr.File(
                         label="📥 Download Report (.md)",
                         interactive=False,
                         visible=True
+                    )
+                    
+                    report_output = gr.Markdown(
+                        value="Security report will appear here after the test completes...",
+                        label="VAPT Report"
                     )
         
         # Event handlers

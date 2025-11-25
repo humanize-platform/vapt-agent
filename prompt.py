@@ -118,7 +118,7 @@ Tasks:
 2. Then, use the vapt_security_test tool to perform security testing
 3. Test for: SQL injection, XSS, authentication issues, rate limiting, CORS policy, security headers, and SSL configuration
 4. Analyze all findings and create a detailed security report
-5. Save the report to a file named 'vapt_report_{timestamp}.md'
+5. Save the report to a file named './vapt_report_{timestamp}.md' in the current working directory (use ./ prefix)
 6. The report MUST be in Markdown format and include:
    - The full API specification generated in step 1
    - Detailed security assessment findings from step 2
