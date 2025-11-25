@@ -1,0 +1,30 @@
+# VAPT Agent Requirements
+
+# Core dependencies
+python-dotenv
+
+# Claude Agent SDK
+claude-agent-sdk
+
+# HTTP client for security testing
+aiohttp
+aiofiles
+
+# Data validation
+pydantic
+
+# AWS SDK (for Bedrock support)
+boto3
+botocore
+
+# Optional: Logging and monitoring
+colorlog
+
+# Optional: For enhanced security testing
+requests
+urllib3
+
+# Optional: For report generation
+jinja2
+
+gradio
