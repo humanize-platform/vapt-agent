@@ -14,26 +14,6 @@ A comprehensive vulnerability assessment and penetration testing (VAPT) agent th
 
 - **Postman Integration**: Uses Postman MCP server (SSE) for automatic API specification creation and testing
 
-- **AWS Bedrock Support**: Seamlessly switch between Anthropic API and AWS Bedrock
-
-- **Modular Architecture**: Clean separation of concerns with dedicated modules for tools, configuration, and agent logic
-
-## Project Structure
-
-```
-vapt-agent/
-├── vapt_agent.py          # Main agent orchestration
-├── vapt_tools.py          # Custom VAPT security testing tools
-├── config.py              # Configuration management
-├── requirements.txt       # Python dependencies
-├── .env.template          # Environment variables template
-└── README.md             # This file
-```
-
-## Installation
-
-1. **Clone the repository**:
-   ```bash
    git clone <repository-url>
    cd vapt-agent
    ```
@@ -90,28 +70,6 @@ The agent connects to Postman's hosted MCP server via SSE:
   "url": "https://mcp.postman.com/mcp",
   "headers": {
     "Authorization": "Bearer ${POSTMAN_API_KEY}"
-  }
-}
-```
-
-No local Postman server setup required!
-
-## Usage
-
-### Basic Usage
-
-Run the agent with default configuration:
-
-```bash
-python vapt_agent.py
-```
-
-### Programmatic Usage
-
-```python
-from vapt_agent import run_vapt_agent
-import asyncio
-
 # Test a specific endpoint
 asyncio.run(run_vapt_agent(
     api_endpoint="https://api.example.com/v1/users",
