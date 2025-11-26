@@ -36,6 +36,7 @@ from openai import OpenAI
 # Try to import Chroma, but degrade gracefully if not installed
 try:
     import chromadb
+
     CHROMA_AVAILABLE = True
 except ImportError:
     chromadb = None
@@ -46,11 +47,14 @@ except ImportError:
 # Simple helpers
 # ---------------------------------------------------------------------------
 
+
 def _normalize(text: str) -> str:
     return text.lower()
 
 
-def _extract_report_sections(report_md: str, max_section_chars: int = 2000) -> List[str]:
+def _extract_report_sections(
+    report_md: str, max_section_chars: int = 2000
+) -> List[str]:
     """
     Split the markdown report into logical sections based on '## ' headings.
 
@@ -149,6 +153,7 @@ def _web_search_tavily(query: str, max_results: int = 3) -> str:
 # ---------------------------------------------------------------------------
 # Security Tutor with Nebius + Chroma
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class TutorConfig:
@@ -262,8 +267,7 @@ class SecurityTutor:
         # 3) Optional web search (if Tavily API key is configured)
         web_snippets = _web_search_tavily(message)
         web_note = (
-            "\n\n---\n\nWeb search snippets:\n"
-            + web_snippets
+            "\n\n---\n\nWeb search snippets:\n" + web_snippets
             if web_snippets
             else "\n\n(Web search not configured or returned no results.)"
         )
@@ -331,7 +335,11 @@ class SecurityTutor:
         self._raw_report = report_md
         self._report_hash = new_hash
 
-        if not self.vector_enabled or not self.chroma_client or not self.config.embedding_model:
+        if (
+            not self.vector_enabled
+            or not self.chroma_client
+            or not self.config.embedding_model
+        ):
             # We still store the report, so fallback search can use it
             self._collection = None
             return
@@ -441,7 +449,7 @@ class SecurityTutor:
             "not for details specific to this particular API implementation.\n\n"
             if include_web
             else "You do NOT have web search snippets for this question; "
-                 "answer using the VAPT report and your general security knowledge.\n\n"
+            "answer using the VAPT report and your general security knowledge.\n\n"
         )
 
         return f"""You are a friendly and knowledgeable security tutor helping developers

@@ -1,0 +1,229 @@
+/* Global background + text color */
+:root {
+    --color-background-primary: #f5f5fb;
+    --color-background-secondary: #ffffff;
+    --background-fill-primary: #f5f5fb;
+    --background-fill-secondary: #ffffff;
+    --block-background-fill: #ffffff;
+}
+
+html,
+body {
+    background: #f5f5fb;
+    color: #111827;
+    margin: 0;
+}
+
+.gradio-container {
+    max-width: 1200px !important;
+    /* change to 100% for full-width */
+    margin: 0 auto !important;
+    padding-inline: 24px;
+    background: transparent !important;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+/* Kill default grey on generic panels/boxes */
+.gr-block,
+.gr-box,
+.gr-panel {
+    background: transparent !important;
+}
+
+/* Main section cards (API Config + Results) */
+.section-card,
+#config-card,
+#results-card {
+    background: #ffffff !important;
+    /* force white, remove grey header */
+    border-radius: 12px;
+    padding: 16px 18px;
+    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+    border: 1px solid #e5e7eb;
+}
+
+.section-card h3,
+.section-card h4 {
+    margin-top: 0;
+    color: #111827;
+}
+
+#app-header {
+    margin-bottom: 1.25rem;
+}
+
+#app-header h1 {
+    font-size: 2.2rem;
+    margin-bottom: 0.25rem;
+    color: #0f172a;
+}
+
+#app-header p {
+    color: #4b5563;
+    /* darker, more readable */
+    font-size: 0.95rem;
+    margin-top: 0.25rem;
+}
+
+.badge-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.25rem 0.85rem;
+    border-radius: 999px;
+    font-size: 0.9rem;
+    /* bigger badge text */
+    font-weight: 600;
+    background: #ecfdf3;
+    color: #15803d;
+    border: 1px solid #bbf7d0;
+}
+
+.badge-pill .dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 999px;
+    background: #22c55e;
+    box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.25);
+}
+
+#disclaimer-box {
+    background: #fefce8;
+    border-left: 4px solid #f59e0b;
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-size: 0.86rem;
+    margin-top: 0.5rem;
+    color: #92400e;
+}
+
+#disclaimer-box strong {
+    color: #b45309;
+}
+
+#config-card>div>label span,
+#results-card>div>label span {
+    font-weight: 500;
+    color: #111827;
+}
+
+/* Reduce font size inside the Security Tutor chatbot */
+#tutor-chat * {
+    font-size: 0.80rem !important;
+}
+
+#tutor-chat .message {
+    padding-top: 4px;
+    padding-bottom: 4px;
+}
+
+/* Reset button styling – elem_id is on the button itself */
+#reset-btn {
+    background-color: #e0f2fe !important;
+    /* light blue */
+    color: #0369a1 !important;
+    border-color: #bae6fd !important;
+}
+
+#reset-btn:hover {
+    background-color: #bfdbfe !important;
+}
+
+/* --- Professional full-width tabs for Security Assessment Results --- */
+
+/* Tab bar container */
+#results-card [role="tablist"] {
+    background: #ffffff !important;
+    /* ensure no grey behind tabs */
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    display: flex;
+    padding: 0;
+    margin-top: 4px;
+    overflow: hidden;
+}
+
+/* Each tab button */
+#results-card [role="tablist"] button {
+    flex: 1 1 0;
+    justify-content: center;
+    background: #ffffff !important;
+    color: #374151;
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+    font-size: 0.9rem;
+    padding-block: 0.4rem;
+    padding-inline: 0.75rem;
+}
+
+/* Hover state for inactive tabs */
+#results-card [role="tablist"] button:hover:not([aria-selected="true"]) {
+    background: #f3f4f6;
+}
+
+/* Active tab (selected) */
+#results-card [role="tablist"] button[aria-selected="true"] {
+    background: #ffffff !important;
+    color: #ea580c !important;
+    /* orange accent */
+    font-weight: 600;
+    box-shadow: inset 0 -3px 0 #ea580c;
+    /* bottom border highlight */
+}
+
+/* Ensure tab content area is white */
+#results-card .tabitem {
+    background: #ffffff !important;
+}
+
+/* --- Security Tutor panel styling --- */
+
+#tutor-section {
+    margin-top: 6px;
+    gap: 10px;
+}
+
+/* Input row card */
+#tutor-input-row {
+    background: #f9fafb;
+    border-radius: 12px;
+    padding: 10px 12px;
+    border: 1px solid #e5e7eb;
+    align-items: stretch;
+}
+
+/* Text area inside tutor row */
+#tutor-input-row textarea {
+    min-height: 64px;
+    border-radius: 8px 0 0 8px !important;
+}
+
+/* Ask button styled as attached to textbox */
+#tutor-input-row button {
+    height: 100%;
+    border-radius: 0 8px 8px 0 !important;
+    padding-inline: 1.6rem;
+    font-weight: 600;
+}
+
+/* Example box */
+#tutor-examples {
+    margin-top: 10px;
+    background: #f9fafb;
+    border-radius: 10px;
+    padding: 10px 12px;
+    border: 1px solid #e5e7eb;
+    font-size: 0.86rem;
+}
+
+#tutor-examples strong {
+    display: block;
+    margin-bottom: 4px;
+    color: #111827;
+}
+
+#tutor-examples ul {
+    margin: 0;
+    padding-left: 1.1rem;
+}

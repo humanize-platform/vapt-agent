@@ -101,16 +101,18 @@ When you are given an endpoint and headers, you MUST:
 """.strip()
 
 
-def get_vapt_query(api_endpoint: str, method: str, headers_str: str, timestamp: str) -> str:
+def get_vapt_query(
+    api_endpoint: str, method: str, headers_str: str, timestamp: str
+) -> str:
     """
     Generate the VAPT assessment query.
-    
+
     Args:
         api_endpoint: The API endpoint to test
         method: HTTP method
         headers_str: JSON string of headers
         timestamp: Timestamp string for the report filename
-        
+
     Returns:
         The formatted query string
     """

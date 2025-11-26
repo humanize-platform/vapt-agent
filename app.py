@@ -1,7 +1,8 @@
 # Gradio Web Interface for VAPT Agent
 
 """
-This module provides a user-friendly Gradio UI for the VAPT (Vulnerability Assessment and Penetration Testing) agent.
+Modern Gradio UI for the VAPT (Vulnerability Assessment and Penetration Testing) agent.
+
 Features:
 - Input API endpoint, HTTP method, and optional API key
 - Real-time progress streaming
@@ -27,9 +28,24 @@ from dashboard_utils import (
 )
 from ai_tutor import get_tutor
 
+import os
+
+CSS_PATH = os.path.join(os.path.dirname(__file__), "vapt_styles.css")
+
+
+def load_custom_css(path: str = CSS_PATH) -> str:
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return f.read()
+    except FileNotFoundError:
+        # Fail silently; app will still run without custom CSS
+        return ""
+
+
 # ---------------------------------------------------------------------------
 # Helper: run the VAPT agent and stream updates to Gradio
 # ---------------------------------------------------------------------------
+
 
 def run_security_test(
     api_endpoint: str,
@@ -88,7 +104,12 @@ def run_security_test(
         )
 
     # ---------- Run agent in background thread ----------
-    result = {"report_content": None, "report_file_path": None, "error": None, "done": False}
+    result = {
+        "report_content": None,
+        "report_file_path": None,
+        "error": None,
+        "done": False,
+    }
 
     def agent_worker():
         try:
@@ -112,8 +133,12 @@ def run_security_test(
         finally:
             result["done"] = True
 
-    # Connect to Claude (or chosen model) – just a placeholder progress update
-    yield (add_progress("🔌 Connecting to LLM backend..."), "## Starting Security Test\n\nConnecting...", None)
+    # Connect to LLM backend – just a placeholder progress update
+    yield (
+        add_progress("🔌 Connecting to security engine..."),
+        "## Starting Security Test\n\nConnecting...",
+        None,
+    )
     threading.Thread(target=agent_worker, daemon=True).start()
 
     # ---------- Poll for updates ----------
@@ -152,138 +177,182 @@ def run_security_test(
             result["report_file_path"],
         )
 
+
 # ---------------------------------------------------------------------------
 # Gradio UI construction
 # ---------------------------------------------------------------------------
 
+
 def create_gradio_interface() -> gr.Blocks:
     with gr.Blocks(title="VAPT Agent") as iface:
 
-        gr.Markdown("""
-        # 🛡️ VAPT Agent – AI-Powered API Security Testing
-        This tool automatically generates an OpenAPI spec via Postman MCP and then runs a full VAPT scan.
-        """)
+        # Inject custom CSS – light theme, white cards, improved readability
+        custom_css = load_custom_css()
+        if custom_css:
+            gr.HTML(f"<style>{custom_css}</style>")
 
-        # Header – two columns describing the workflow and tests
-        with gr.Row():
-            with gr.Column(scale=1):
+        # --- Header ---
+        with gr.Row(elem_id="app-header"):
+            with gr.Column(scale=6):
                 gr.Markdown(
                     """
-                    **Two-Step Automated Security Testing:**
-                    
-                    1️⃣ **API Spec Generation** – Postman MCP auto-discovers and documents the API.
-                    2️⃣ **VAPT Testing** – Custom MCP tools perform comprehensive security checks.
-                    """
+                    <div>
+                      <div class="badge-pill">
+                        <span class="dot"></span>
+                        <span>Agentic VAPT • API Security</span>
+                      </div>
+                      <h1>VAPT Agent Dashboard</h1>
+                      <p>
+                     Generate API specs, run automated vulnerability tests, and explore results with an AI security tutor. Gain clear insights into API risks, misconfigurations, and recommended remediation steps in dashboard.
+                      </p>
+                    </div>
+                    """,
+                    elem_id="header-title",
                 )
-            with gr.Column(scale=1):
+            with gr.Column(scale=4):
                 gr.Markdown(
                     """
-                    **Security Tests Performed:**
+                    **Workflow Overview**
                     
-                    ✓ SQL Injection • XSS • Auth/Authorization
-                    ✓ Rate Limiting • CORS Policy • Security Headers
-                    """
+                    1. Provide an API endpoint and method  
+                    2. Agent discovers endpoints & builds spec (Postman MCP)  
+                    3. VAPT tools run security tests  
+                    4. Dashboard + Tutor help you interpret and fix issues
+                    """,
                 )
 
-        # Input section
+        # --- Main two-column layout ---
         with gr.Row():
-            with gr.Column(scale=1):
-                gr.Markdown("### 📋 API Configuration")
-                api_endpoint = gr.Textbox(
-                    label="API Endpoint URL",
-                    placeholder="https://api.example.com/v1/users",
-                    value="https://jsonplaceholder.typicode.com/posts",
-                    info="Full URL of the API endpoint to test",
-                )
-                http_method = gr.Dropdown(
-                    label="HTTP Method",
-                    choices=["GET", "POST", "PUT", "DELETE", "PATCH"],
-                    value="GET",
-                    info="Select the HTTP method for the endpoint",
-                )
-                api_key = gr.Textbox(
-                    label="API Key (Optional)",
-                    placeholder="Enter your API key or Bearer token",
-                    type="password",
-                    info="If the API requires authentication, provide the key here",
-                )
-                with gr.Row():
-                    submit_btn = gr.Button("🚀 Start Security Test", variant="primary", size="lg")
-                    clear_btn = gr.Button("🔄 Clear", variant="secondary")
-                # Full-width disclaimer
-                gr.HTML(
-                    "<div style='width:100%; padding:8px; background:#fff3cd; border-left:4px solid #ffc107; margin:8px 0;'>"
-                    "⚠️ <strong>Disclaimer:</strong> This tool is for authorized security testing only. "
-                    "Always obtain proper authorization before testing."
-                    "</div>"
-                )
-            with gr.Column(scale=2):
-                gr.Markdown("### 📊 Test Results")
-                # Live progress tab
-                with gr.Tab("Live Progress"):
-                    progress_output = gr.Textbox(
-                        label="Agent Activity",
-                        lines=15,
-                        max_lines=20,
-                        interactive=False,
-                        placeholder="Agent activity will appear here...",
-                    )
-                # Report tab (download first, then markdown)
-                with gr.Tab("Security Report"):
-                    report_file = gr.File(
-                        label="📥 Download Report (.md)",
-                        interactive=False,
-                        visible=True,
-                    )
-                    report_output = gr.Markdown(
-                        value="Security report will appear here after the test completes...",
-                        label="VAPT Report",
-                    )
-                # Dashboard tab
-                with gr.Tab("📊 Dashboard"):
-                    gr.Markdown("### Security Overview")
-                    with gr.Row():
-                        with gr.Column(scale=1):
-                            risk_gauge = gr.Plot(label="Risk Score")
-                        with gr.Column(scale=1):
-                            severity_pie = gr.Plot(label="Vulnerability Distribution")
+            # Left: API configuration
+            with gr.Column(scale=5):
+                with gr.Group(elem_id="config-card", elem_classes=["section-card"]):
+                    gr.Markdown("### 📋 API Configuration")
 
-                    top_findings = gr.Markdown("Run a security test to see results...")
-                # AI Tutor tab
-                with gr.Tab("🎓 AI Security Tutor"):
-                    gr.Markdown(
-                        """
-                        ### Ask Questions About Your Security Report
-                        Get expert explanations, remediation steps and best-practice advice.
-                        """
+                    api_endpoint = gr.Textbox(
+                        label="API Endpoint URL",
+                        placeholder="https://api.example.com/v1/users",
+                        value="https://jsonplaceholder.typicode.com/posts",
+                        info="Full URL of the API endpoint to test",
                     )
-                    chatbot = gr.Chatbot(label="Security Tutor", height=400)
+                    http_method = gr.Dropdown(
+                        label="HTTP Method",
+                        choices=["GET", "POST", "PUT", "DELETE", "PATCH"],
+                        value="GET",
+                        info="Select the HTTP method for the endpoint",
+                    )
+                    api_key = gr.Textbox(
+                        label="API Key (Optional)",
+                        placeholder="Enter your API key or Bearer token",
+                        type="password",
+                        info="If the API requires authentication, provide the key here",
+                    )
                     with gr.Row():
-                        tutor_input = gr.Textbox(
-                            label="Your Question",
-                            placeholder="e.g., What is SQL injection and how do I fix it?",
-                            lines=2,
-                            scale=4,
+                        submit_btn = gr.Button(
+                            "🚀 Start Security Test", variant="primary", size="lg"
                         )
-                        tutor_btn = gr.Button("Ask", variant="primary", scale=1)
-                    gr.Markdown(
+                        clear_btn = gr.Button(
+                            "🔄 Reset", variant="secondary", elem_id="reset-btn"
+                        )
+
+                    gr.HTML(
                         """
-                        **Example Questions:**
-                        - What is the most critical issue in my report?
-                        - How do I fix CORS policy issues?
-                        - Explain SQL injection in simple terms
-                        - What are the top 3 priorities to fix?
+                        <div id="disclaimer-box">
+                          ⚠️ <strong>Authorized use only:</strong> Run this tool only against systems and APIs you are explicitly allowed to test.
+                        </div>
                         """
                     )
+
+            # Right: Results area
+            with gr.Column(scale=7):
+                with gr.Group(elem_id="results-card", elem_classes=["section-card"]):
+                    gr.Markdown("### 📊 Security Assessment Results")
+
+                    with gr.Tab("Live Progress"):
+                        progress_output = gr.Textbox(
+                            label="Agent Activity Log",
+                            lines=15,
+                            max_lines=20,
+                            interactive=False,
+                            show_label=False,
+                            placeholder="Agent activity will appear here...",
+                        )
+
+                    with gr.Tab("Security Report"):
+                        report_file = gr.File(
+                            label="📥 Download Report (.md)",
+                            interactive=False,
+                            visible=True,
+                        )
+                        report_output = gr.Markdown(
+                            value="Security report will appear here after the test completes...",
+                            label="VAPT Report",
+                        )
+
+                    with gr.Tab("Dashboard"):
+                        gr.Markdown("#### Security Overview")
+                        with gr.Row():
+                            with gr.Column(scale=1):
+                                risk_gauge = gr.Plot(label="Risk Score")
+                            with gr.Column(scale=1):
+                                severity_pie = gr.Plot(
+                                    label="Vulnerability Distribution"
+                                )
+
+                        top_findings = gr.Markdown(
+                            "Run a security test to see summarized key findings..."
+                        )
+
+                    with gr.Tab("Security Tutor"):
+                        with gr.Column(elem_id="tutor-section"):
+                            gr.Markdown(
+                                """
+                                #### Ask Questions About Your Security Report  
+                                Use the tutor to understand vulnerabilities, remediation steps, and security best practices.
+                                """
+                            )
+                            chatbot = gr.Chatbot(
+                                label="Security Tutor",
+                                height=380,
+                                elem_id="tutor-chat",
+                            )
+
+                            with gr.Row(elem_id="tutor-input-row"):
+                                tutor_input = gr.Textbox(
+                                    label="Your Question",
+                                    placeholder="e.g., What is SQL injection and how do I fix it?",
+                                    lines=2,
+                                    scale=4,
+                                    show_label=True,
+                                )
+                                tutor_btn = gr.Button("Ask", variant="primary", scale=1)
+
+                            gr.HTML(
+                                """
+                                <div id="tutor-examples">
+                                  <strong>Example questions you can ask:</strong>
+                                  <ul>
+                                    <li>What is the most critical issue in my report?</li>
+                                    <li>How do I fix CORS policy issues?</li>
+                                    <li>Explain SQL injection in simple terms.</li>
+                                    <li>What should I fix first to reduce risk quickly?</li>
+                                  </ul>
+                                </div>
+                                """
+                            )
+
         # -------------------------------------------------------------------
         # Event bindings
         # -------------------------------------------------------------------
+
+        # VAPT run
         submit_btn.click(
             fn=run_security_test,
             inputs=[api_endpoint, http_method, api_key],
             outputs=[progress_output, report_output, report_file],
             show_progress=True,
         )
+
+        # Reset
         clear_btn.click(
             fn=lambda: (
                 "https://jsonplaceholder.typicode.com/posts",
@@ -294,7 +363,14 @@ def create_gradio_interface() -> gr.Blocks:
                 None,
             ),
             inputs=[],
-            outputs=[api_endpoint, http_method, api_key, progress_output, report_output, report_file],
+            outputs=[
+                api_endpoint,
+                http_method,
+                api_key,
+                progress_output,
+                report_output,
+                report_file,
+            ],
         )
 
         # Dashboard updates – triggered after a successful report
@@ -305,7 +381,11 @@ def create_gradio_interface() -> gr.Blocks:
             return (
                 create_risk_gauge(risk),
                 create_severity_chart(sev),
-                "\n".join(data.get("findings", [])[:5]) if data.get("findings") else "No findings detected.",
+                (
+                    "\n".join(data.get("findings", [])[:5])
+                    if data.get("findings")
+                    else "No findings detected."
+                ),
             )
 
         report_output.change(
@@ -315,7 +395,7 @@ def create_gradio_interface() -> gr.Blocks:
         )
 
         # AI Tutor interaction
-        # Gradio Chatbot uses a "messages" format: a list of {"role": ..., "content": ...}
+        # Gradio Chatbot (v6) uses "messages" format: list of {"role": ..., "content": ...}
         # We convert that to (user, assistant) pairs for the tutor, then convert back.
         def tutor_respond(question, history, report_md: str):
             # 1) Convert Gradio "messages" history -> list of (user, assistant) pairs
@@ -327,9 +407,7 @@ def create_gradio_interface() -> gr.Blocks:
                     role = msg.get("role")
                     content = msg.get("content", "")
                 elif isinstance(msg, (list, tuple)) and len(msg) == 2:
-                    # Backward-compat for (user, assistant) tuple format
-                    # We'll treat it as an alternating sequence if needed.
-                    # But in modern Gradio, this branch shouldn't normally be used.
+                    # Backward compatibility: skip old tuple-style entries
                     continue
                 else:
                     continue
@@ -359,11 +437,14 @@ def create_gradio_interface() -> gr.Blocks:
             inputs=[tutor_input, chatbot, report_output],
             outputs=[chatbot, tutor_input],
         )
+
     return iface
+
 
 # ---------------------------------------------------------------------------
 # Main entry point
 # ---------------------------------------------------------------------------
+
 
 def main():
     print("=" * 80)
@@ -373,7 +454,6 @@ def main():
         cfg = VAPTConfig()
         print(f"✓ Configuration loaded successfully")
         print(f"  Provider: {'AWS Bedrock' if cfg.use_bedrock else 'Anthropic API'}")
-
         if cfg.use_bedrock:
             print(f"  Region: {cfg.aws_region}")
         print()
@@ -381,10 +461,12 @@ def main():
         print(f"❌ Configuration error: {exc}")
         print("Please check your .env file and ensure all required variables are set.")
         return
+
     iface = create_gradio_interface()
     print("Starting Gradio server...")
     print("=" * 80)
     iface.launch(server_name="0.0.0.0", server_port=7861, share=False, inbrowser=True)
+
 
 if __name__ == "__main__":
     main()

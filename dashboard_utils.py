@@ -46,7 +46,9 @@ def parse_vapt_report(report_md: str) -> Dict:
     #          - Critical Vulnerabilities: 0
     #      - list bullets "-", "*", "•"
     # ------------------------------------------------------------------
-    summary_pattern = r"(?:^|\n)#{0,3}\s*Key Findings(?: Summary)?\s*:?(.*?)(?:\n#{1,6}\s|\Z)"
+    summary_pattern = (
+        r"(?:^|\n)#{0,3}\s*Key Findings(?: Summary)?\s*:?(.*?)(?:\n#{1,6}\s|\Z)"
+    )
     summary_match = re.search(summary_pattern, report_md, re.DOTALL | re.IGNORECASE)
 
     if summary_match:
@@ -93,7 +95,9 @@ def parse_vapt_report(report_md: str) -> Dict:
         finding_headers.append(title.strip())
 
     # Pattern B: "### X.X SEVERITY: Title"
-    pattern_b = r"###\s+(?:\d+\.\d+\s+)?(CRITICAL|HIGH|MEDIUM|LOW|INFO)\s*:\s*(.+?)(?:\n|$)"
+    pattern_b = (
+        r"###\s+(?:\d+\.\d+\s+)?(CRITICAL|HIGH|MEDIUM|LOW|INFO)\s*:\s*(.+?)(?:\n|$)"
+    )
     matches_b = re.findall(pattern_b, report_md, re.IGNORECASE)
     for severity, title in matches_b:
         finding_headers.append(f"[{severity.upper()}] {title.strip()}")
@@ -160,7 +164,9 @@ def calculate_risk_score(severities: Dict[str, int]) -> int:
         "info": 1,
     }
 
-    score = sum(count * weights.get(sev.lower(), 0) for sev, count in severities.items())
+    score = sum(
+        count * weights.get(sev.lower(), 0) for sev, count in severities.items()
+    )
 
     # Cap at 100
     return min(score, 100)
@@ -231,7 +237,11 @@ def create_severity_chart(severities: Dict[str, int]) -> go.Figure:
     )
 
     fig.update_layout(
-        title={"text": "Vulnerability Distribution by Severity", "x": 0.5, "xanchor": "center"},
+        title={
+            "text": "Vulnerability Distribution by Severity",
+            "x": 0.5,
+            "xanchor": "center",
+        },
         height=400,
         showlegend=True,
         legend=dict(
