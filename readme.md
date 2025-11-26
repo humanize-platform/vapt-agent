@@ -1,6 +1,8 @@
 # VAPT Agent - API Security Testing with Claude
 
-A comprehensive vulnerability assessment and penetration testing (VAPT) agent that uses Claude Agent SDK with Postman MCP server for automated API security testing.
+A comprehensive vulnerability assessment and penetration testing (VAPT) agent that uses **Claude Agent SDK** with **Postman MCP server** for automated API security testing.
+
+Now featuring a modern **Gradio Web Interface** with a visual dashboard and an **AI Security Tutor** to help you understand and fix vulnerabilities.
 
 ## Features
 
@@ -11,9 +13,30 @@ A comprehensive vulnerability assessment and penetration testing (VAPT) agent th
   - Rate limiting verification
   - CORS policy validation
   - Security headers assessment
+- **Interactive Web UI**: Modern Gradio interface with real-time progress streaming.
+- **Visual Dashboard**: Risk gauge and severity charts to visualize security posture.
+- **AI Security Tutor**: Interactive Q&A assistant powered by **Nebius** and **Chroma** vector search to explain findings and remediation steps.
+- **Postman Integration**: Uses Postman MCP server (SSE) for automatic API specification creation and testing.
 
-- **Postman Integration**: Uses Postman MCP server (SSE) for automatic API specification creation and testing
+## Architecture & Models
 
+This agent leverages state-of-the-art AI models for different components:
+
+- **VAPT Agent Logic**: Powered by **Haiku 4.5** (via Anthropic API or AWS Bedrock) for fast and efficient security reasoning.
+- **AI Security Tutor**: Powered by **gpt-oss-20b** (via Nebius) for high-quality educational explanations.
+- **Semantic Search**: Uses **Qwen3-Embedding-8B** (via Nebius) for vectorizing the VAPT report to enable accurate context retrieval for the tutor.
+
+## Prerequisites
+
+- Python 3.10+
+- [Postman API Key](https://postman.com/settings/api-keys)
+- [Anthropic API Key](https://console.anthropic.com/) OR AWS Bedrock access
+- [Nebius API Key](https://nebius.com/) (for AI Tutor)
+
+## Installation
+
+1. **Clone the repository**:
+   ```bash
    git clone <repository-url>
    cd vapt-agent
    ```
@@ -37,54 +60,76 @@ A comprehensive vulnerability assessment and penetration testing (VAPT) agent th
 
 ## Configuration
 
-### Environment Variables
-
 Create a `.env` file with the following variables:
 
 ```properties
+# --- Core VAPT Agent Configuration ---
+
 # AWS Bedrock (set to 1 to use Bedrock, 0 for Anthropic API)
 CLAUDE_CODE_USE_BEDROCK=1
+
+# AWS Credentials (if using Bedrock)
 AWS_ACCESS_KEY_ID=your_access_key
 AWS_SECRET_ACCESS_KEY=your_secret_key
 AWS_REGION=us-east-1
 
-# Model selection
-ANTHROPIC_MODEL=us.anthropic.claude-sonnet-4-20250514-v1:0
+# Model selection for VAPT Agent (Haiku 4.5 recommended)
+ANTHROPIC_MODEL=claude-3-haiku-20240307
+# If using Anthropic API directly:
+# ANTHROPIC_API_KEY=sk-ant-...
 
 # Postman API key (get from https://postman.com/settings/api-keys)
 POSTMAN_API_KEY=your_postman_api_key
 
-# Test API configuration
-TEST_API_ENDPOINT=https://api.example.com/v1/users
-TEST_API_METHOD=GET
-TEST_API_KEY=optional_bearer_token
+# --- AI Tutor Configuration (Nebius) ---
+
+# Nebius API Key for Tutor and Embeddings
+NEBIUS_API_KEY=your_nebius_api_key
+
+# Nebius Base URL (optional, defaults to standard endpoint)
+# NEBIUS_BASE_URL=https://api.tokenfactory.nebius.com/v1
+
+# AI Tutor Chat Model
+NEBIUS_TUTOR_MODEL=gpt-oss-20b
+
+# Embedding Model for Vector Search
+NEBIUS_EMBEDDING_MODEL=Qwen3-Embedding-8B
+
+# --- Optional Web Search ---
+# TAVILY_API_KEY=tvly-...
 ```
 
-### Postman MCP Server Configuration
+## Usage
 
-The agent connects to Postman's hosted MCP server via SSE:
+### 1. Web Interface (Recommended)
 
-```json
-{
-  "type": "sse",
-  "url": "https://mcp.postman.com/mcp",
-  "headers": {
-    "Authorization": "Bearer ${POSTMAN_API_KEY}"
-# Test a specific endpoint
-asyncio.run(run_vapt_agent(
-    api_endpoint="https://api.example.com/v1/users",
-    method="GET",
-    headers={
-        "Authorization": "Bearer your-token",
-        "Content-Type": "application/json"
-    }
-))
+Launch the Gradio dashboard for an interactive experience:
+
+```bash
+python app.py
 ```
+
+- Open your browser at `http://localhost:7861`
+- Enter the API endpoint and method.
+- Watch the real-time progress log.
+- View the generated report, risk dashboard, and chat with the AI Security Tutor.
+
+### 2. Command Line Interface
+
+Run the agent directly from the terminal:
+
+```bash
+python vapt_agent.py
+```
+
+(Ensure `TEST_API_ENDPOINT` and `TEST_API_METHOD` are set in your `.env` file for CLI usage).
 
 ## Security Tests Performed
 
+The agent uses custom MCP tools (`vapt_tools.py`) to perform:
+
 ### 1. **Injection Testing**
-- SQL Injection with various payloads
+- SQL Injection with various payloads (e.g., `' OR '1'='1`)
 - XSS (Cross-Site Scripting) detection
 - Path traversal attempts
 
@@ -100,7 +145,7 @@ asyncio.run(run_vapt_agent(
 
 ### 4. **CORS Policy**
 - Origin validation
-- Wildcard (*) detection
+- Wildcard (`*`) detection
 - Cross-origin request testing
 
 ### 5. **Security Headers**
@@ -112,67 +157,24 @@ asyncio.run(run_vapt_agent(
 
 ## Output
 
-The agent generates a comprehensive JSON report saved as `vapt_report_YYYYMMDD_HHMMSS.json`:
-
-```json
-{
-  "endpoint": "https://api.example.com/v1/users",
-  "method": "GET",
-  "timestamp": "2025-01-15T10:30:00",
-  "tests_performed": ["injection", "auth", "rate_limit", "cors", "headers"],
-  "total_vulnerabilities": 3,
-  "results": [
-    {
-      "test_type": "SQL Injection",
-      "severity": "critical",
-      "status": "vulnerable",
-      "description": "...",
-      "recommendation": "...",
-      "evidence": {...}
-    }
-  ],
-  "summary": {
-    "critical": 1,
-    "high": 2,
-    "medium": 0,
-    "low": 0,
-    "info": 5
-  }
-}
-```
-
-## AWS Bedrock vs Anthropic API
-
-### Using AWS Bedrock
-```properties
-CLAUDE_CODE_USE_BEDROCK=1
-AWS_ACCESS_KEY_ID=...
-AWS_SECRET_ACCESS_KEY=...
-AWS_REGION=us-east-1
-ANTHROPIC_MODEL=us.anthropic.claude-sonnet-4-20250514-v1:0
-```
-
-### Using Anthropic API
-```properties
-CLAUDE_CODE_USE_BEDROCK=0
-ANTHROPIC_API_KEY=sk-ant-...
-ANTHROPIC_MODEL=claude-sonnet-4-20250514
-```
+The agent generates a comprehensive Markdown report saved as `vapt_report_YYYYMMDD_HHMMSS.md` containing:
+- Executive Summary
+- Vulnerability Details (Severity, Description, Evidence, Remediation)
+- Risk Score
 
 ## Troubleshooting
 
 ### Postman API Key Issues
 - Get your API key from: https://postman.com/settings/api-keys
-- Ensure the key has necessary permissions
+- Ensure the key has necessary permissions.
 
 ### AWS Bedrock Issues
-- Verify AWS credentials are correct
-- Ensure you have access to Claude models in your region
-- Check AWS region supports the specified model
+- Verify AWS credentials are correct.
+- Ensure you have access to Claude models in your region.
 
-### Timeout Errors
-- Increase `TIMEOUT_SECONDS` in `.env` for slow APIs
-- Reduce test intensity for rate limit tests
+### AI Tutor Not Working
+- Check `NEBIUS_API_KEY` is set.
+- Ensure `NEBIUS_EMBEDDING_MODEL` is set to `Qwen3-Embedding-8B` for vector search to work.
 
 ## Contributing
 
@@ -187,4 +189,4 @@ MIT License
 
 ## Disclaimer
 
-This tool is for authorized security testing only. Always obtain proper authorization before testing any API endpoints. Unauthorized testing may be illegal.
+This tool is for **authorized security testing only**. Always obtain proper authorization before testing any API endpoints. Unauthorized testing may be illegal.

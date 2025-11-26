@@ -227,3 +227,20 @@ body {
     margin: 0;
     padding-left: 1.1rem;
 }
+
+/* Clean, single-card look for Security Report markdown area */
+#security-report-md {
+    background: #ffffff !important;
+    border-radius: 8px;
+    padding: 16px 20px;
+    border: 1px solid #e5e7eb;
+}
+
+/* Inner markdown/prose should be transparent, no extra padding/border */
+#security-report-md .gr-markdown,
+#security-report-md .prose {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+}

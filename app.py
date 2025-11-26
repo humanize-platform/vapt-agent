@@ -215,9 +215,9 @@ def create_gradio_interface() -> gr.Blocks:
                     **Workflow Overview**
                     
                     1. Provide an API endpoint and method  
-                    2. Agent discovers endpoints & builds spec (Postman MCP)  
-                    3. VAPT tools run security tests  
-                    4. Dashboard + Tutor help you interpret and fix issues
+                    2. Agent discovers endpoints & builds the spec (Postman MCP)  
+                    3. Customized VAPT MCP tools run automated security tests  
+                    4. Dashboard + Tutor help you interpret and fix issues  
                     """,
                 )
 
@@ -286,6 +286,7 @@ def create_gradio_interface() -> gr.Blocks:
                         report_output = gr.Markdown(
                             value="Security report will appear here after the test completes...",
                             label="VAPT Report",
+                            elem_id="security-report-md",
                         )
 
                     with gr.Tab("Dashboard"):
