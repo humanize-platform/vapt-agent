@@ -215,7 +215,7 @@ def create_gradio_interface() -> gr.Blocks:
                     **Workflow Overview**
                     
                     1. Provide an API endpoint and method  
-                    2. Agent discovers endpoints & builds the spec (Postman MCP)  
+                    2. Agent discovers endpoints and builds the API spec using Postman MCP 
                     3. Customized VAPT MCP tools run automated security tests  
                     4. Dashboard + Tutor help you interpret and fix issues  
                     """,
@@ -468,7 +468,7 @@ def main():
     iface = create_gradio_interface()
     print("Starting Gradio server...")
     print("=" * 80)
-    iface.launch(server_name="0.0.0.0", server_port=7861, share=False, inbrowser=True)
+    iface.launch(server_name="0.0.0.0", server_port=7861, share=True, inbrowser=True)
 
 
 if __name__ == "__main__":

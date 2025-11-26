@@ -228,12 +228,18 @@ body {
     padding-left: 1.1rem;
 }
 
-/* Clean, single-card look for Security Report markdown area */
+/* Security Report markdown container */
 #security-report-md {
     background: #ffffff !important;
     border-radius: 8px;
     padding: 16px 20px;
     border: 1px solid #e5e7eb;
+    max-height: 520px;
+    /* adjust as you like */
+    overflow-y: auto;
+    /* vertical scroll when content exceeds height */
+    overflow-x: hidden;
+    /* avoid horizontal bar unless you need it */
 }
 
 /* Inner markdown/prose should be transparent, no extra padding/border */

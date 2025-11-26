@@ -105,7 +105,7 @@ async def run_vapt_agent_with_callback(
     report_file_path = None
 
     async with ClaudeSDKClient(options=options) as client:
-        update_progress(f"✅ Connected to Claude SDK ")
+        update_progress(f"✅ Connected to Claude Agent SDK ")
         update_progress(f"🎯 Testing endpoint: {api_endpoint}")
 
         # Construct the query for the agent
@@ -254,7 +254,7 @@ async def run_vapt_agent(
     )
 
     async with ClaudeSDKClient(options=options) as client:
-        print(f"[VAPT Agent] Connected to Claude SDK")
+        print(f"[VAPT Agent] Connected to Claude Agent SDK")
         if config.use_bedrock:
             print(f"[VAPT Agent] Using AWS Bedrock with model: {model_name}")
             print(f"[VAPT Agent] AWS Region: {config.aws_region}")

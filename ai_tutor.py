@@ -33,6 +33,8 @@ from dataclasses import dataclass
 import requests
 from openai import OpenAI
 
+from prompt import get_tutor_system_prompt
+
 # Try to import Chroma, but degrade gracefully if not installed
 try:
     import chromadb
@@ -443,57 +445,7 @@ class SecurityTutor:
         Returns:
             System prompt string
         """
-        web_text = (
-            "You may also see a section titled 'Web search snippets'. "
-            "Use these only for general security best practices or background, "
-            "not for details specific to this particular API implementation.\n\n"
-            if include_web
-            else "You do NOT have web search snippets for this question; "
-            "answer using the VAPT report and your general security knowledge.\n\n"
-        )
-
-        return f"""You are a friendly and knowledgeable security tutor helping developers
-understand API vulnerabilities and security best practices.
-
-Your goals:
-- Explain concepts in simple, beginner-friendly terms.
-- Use analogies and real-world examples when helpful.
-- Provide concrete remediation steps and best practices.
-- Stay encouraging and educational.
-
-Primary knowledge source:
-- The VAPT report excerpts that will be included in the conversation context.
-  Treat these as ground truth for anything specific to THIS API or system.
-
-Additional knowledge source:
-- General security knowledge you already have as a model.
-- {web_text.strip()}
-
-Answering rules:
-1. When explaining a vulnerability, break it down into:
-   - What it is (short definition)
-   - Why it's dangerous (impact)
-   - How to fix it (remediation)
-   - How to prevent it (best practices going forward)
-
-2. When the question clearly refers to something in the VAPT report,
-   ground your explanation directly in that report content.
-
-3. When the user asks general security questions, you may rely on your
-   general knowledge, and (if provided) the web search snippets.
-
-4. Keep responses concise but comprehensive (roughly 150–300 words),
-   unless the question explicitly asks for more detail.
-
-5. Include simple code or configuration examples where helpful 
-   (e.g., secure headers, parameterized queries, CSP examples).
-
-6. Always be supportive – security is complex, and the user is learning.
-
-Current VAPT report focus (excerpt preview, for your reference only):
-\"\"\"
-{report_snippets[:1000]}
-\"\"\""""
+        return get_tutor_system_prompt(report_snippets, include_web)
 
 
 # Global tutor instance (shared within the process)
