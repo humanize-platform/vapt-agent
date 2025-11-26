@@ -1,10 +1,10 @@
 # Gradio Web Interface for VAPT Agent
 
 """
-This module provides a user‑friendly Gradio UI for the VAPT (Vulnerability Assessment and Penetration Testing) agent.
+This module provides a user-friendly Gradio UI for the VAPT (Vulnerability Assessment and Penetration Testing) agent.
 Features:
 - Input API endpoint, HTTP method, and optional API key
-- Real‑time progress streaming
+- Real-time progress streaming
 - Downloadable Markdown report
 - Visual Dashboard (risk gauge & severity pie chart)
 - AI Security Tutor (interactive Q&A about the report)
@@ -160,7 +160,7 @@ def create_gradio_interface() -> gr.Blocks:
     with gr.Blocks(title="VAPT Agent") as iface:
 
         gr.Markdown("""
-        # 🛡️ VAPT Agent – AI‑Powered API Security Testing
+        # 🛡️ VAPT Agent – AI-Powered API Security Testing
         This tool automatically generates an OpenAPI spec via Postman MCP and then runs a full VAPT scan.
         """)
 
@@ -169,9 +169,9 @@ def create_gradio_interface() -> gr.Blocks:
             with gr.Column(scale=1):
                 gr.Markdown(
                     """
-                    **Two‑Step Automated Security Testing:**
+                    **Two-Step Automated Security Testing:**
                     
-                    1️⃣ **API Spec Generation** – Postman MCP auto‑discovers and documents the API.
+                    1️⃣ **API Spec Generation** – Postman MCP auto-discovers and documents the API.
                     2️⃣ **VAPT Testing** – Custom MCP tools perform comprehensive security checks.
                     """
                 )
@@ -210,7 +210,7 @@ def create_gradio_interface() -> gr.Blocks:
                 with gr.Row():
                     submit_btn = gr.Button("🚀 Start Security Test", variant="primary", size="lg")
                     clear_btn = gr.Button("🔄 Clear", variant="secondary")
-                # Full‑width disclaimer
+                # Full-width disclaimer
                 gr.HTML(
                     "<div style='width:100%; padding:8px; background:#fff3cd; border-left:4px solid #ffc107; margin:8px 0;'>"
                     "⚠️ <strong>Disclaimer:</strong> This tool is for authorized security testing only. "
@@ -254,7 +254,7 @@ def create_gradio_interface() -> gr.Blocks:
                     gr.Markdown(
                         """
                         ### Ask Questions About Your Security Report
-                        Get expert explanations, remediation steps and best‑practice advice.
+                        Get expert explanations, remediation steps and best-practice advice.
                         """
                     )
                     chatbot = gr.Chatbot(label="Security Tutor", height=400)
@@ -296,6 +296,7 @@ def create_gradio_interface() -> gr.Blocks:
             inputs=[],
             outputs=[api_endpoint, http_method, api_key, progress_output, report_output, report_file],
         )
+
         # Dashboard updates – triggered after a successful report
         def update_dashboard(report_md: str):
             data = parse_vapt_report(report_md)
@@ -306,17 +307,53 @@ def create_gradio_interface() -> gr.Blocks:
                 create_severity_chart(sev),
                 "\n".join(data.get("findings", [])[:5]) if data.get("findings") else "No findings detected.",
             )
+
         report_output.change(
             fn=update_dashboard,
             inputs=[report_output],
             outputs=[risk_gauge, severity_pie, top_findings],
         )
+
         # AI Tutor interaction
-        def tutor_respond(question: str, history: List[Tuple[str, str]], report_md: str):
+        # Gradio Chatbot uses a "messages" format: a list of {"role": ..., "content": ...}
+        # We convert that to (user, assistant) pairs for the tutor, then convert back.
+        def tutor_respond(question, history, report_md: str):
+            # 1) Convert Gradio "messages" history -> list of (user, assistant) pairs
+            pairs: List[Tuple[str, str]] = []
+            current_user = None
+
+            for msg in history or []:
+                if isinstance(msg, dict):
+                    role = msg.get("role")
+                    content = msg.get("content", "")
+                elif isinstance(msg, (list, tuple)) and len(msg) == 2:
+                    # Backward-compat for (user, assistant) tuple format
+                    # We'll treat it as an alternating sequence if needed.
+                    # But in modern Gradio, this branch shouldn't normally be used.
+                    continue
+                else:
+                    continue
+
+                if role == "user":
+                    current_user = content
+                elif role == "assistant":
+                    if current_user is None:
+                        current_user = ""
+                    pairs.append((current_user, content))
+                    current_user = None
+
+            # 2) Call the tutor with pairs
             tutor = get_tutor()
-            answer = tutor.chat(question, report_md, history)
-            history.append((question, answer))
-            return history, ""
+            answer = tutor.chat(question, report_md, pairs)
+
+            # 3) Append new user + assistant messages in Gradio's messages format
+            new_history = list(history or [])
+            new_history.append({"role": "user", "content": question})
+            new_history.append({"role": "assistant", "content": answer})
+
+            # Clear the input textbox
+            return new_history, ""
+
         tutor_btn.click(
             fn=tutor_respond,
             inputs=[tutor_input, chatbot, report_output],
