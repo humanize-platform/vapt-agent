@@ -244,3 +244,21 @@ body {
     box-shadow: none !important;
     padding: 0 !important;
 }
+
+/* Center the two dashboard charts horizontally */
+#dashboard-row {
+    justify-content: center;
+    gap: 24px;
+}
+
+#risk-col,
+#severity-col {
+    display: flex;
+    justify-content: center;
+}
+
+#risk-col .gr-plot,
+#severity-col .gr-plot {
+    max-width: 480px;
+    width: 100%;
+}

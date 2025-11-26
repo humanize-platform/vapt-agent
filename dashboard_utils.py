@@ -289,7 +289,7 @@ def create_risk_gauge(risk_score: int) -> go.Figure:
             title={"text": f"Risk Score: {level}"},
             delta={"reference": 50},
             gauge={
-                "axis": {"range": [None, 100]},
+                "axis": {"range": [0, 100]},
                 "bar": {"color": color},
                 "steps": [
                     {"range": [0, 20], "color": "rgba(40, 167, 69, 0.2)"},
@@ -307,6 +307,11 @@ def create_risk_gauge(risk_score: int) -> go.Figure:
         )
     )
 
-    fig.update_layout(height=300)
+    # Give the figure some breathing room so nothing hugs the edges / looks clipped
+    fig.update_layout(
+        height=300,
+        margin=dict(l=40, r=40, t=80, b=30),
+        autosize=True,
+    )
 
     return fig

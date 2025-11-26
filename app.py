@@ -290,11 +290,11 @@ def create_gradio_interface() -> gr.Blocks:
                         )
 
                     with gr.Tab("Dashboard"):
-                        gr.Markdown("#### Security Overview")
-                        with gr.Row():
-                            with gr.Column(scale=1):
+                        # Row that we'll center via CSS
+                        with gr.Row(elem_id="dashboard-row"):
+                            with gr.Column(scale=1, elem_id="risk-col"):
                                 risk_gauge = gr.Plot(label="Risk Score")
-                            with gr.Column(scale=1):
+                            with gr.Column(scale=1, elem_id="severity-col"):
                                 severity_pie = gr.Plot(
                                     label="Vulnerability Distribution"
                                 )
@@ -306,11 +306,13 @@ def create_gradio_interface() -> gr.Blocks:
                     with gr.Tab("Security Tutor"):
                         with gr.Column(elem_id="tutor-section"):
                             gr.Markdown(
-                                """
-                                #### Ask Questions About Your Security Report  
-                                Use the tutor to understand vulnerabilities, remediation steps, and security best practices.
-                                """
-                            )
+                            """
+                            <div style="font-size: 0.95rem; line-height: 1.5; margin-bottom: 0.4rem;">
+                            <strong>Ask questions about your security report.</strong><br/>
+                            Get clear explanations, remediation guidance, and best-practice advice.
+                            </div>
+                            """
+                            )   
                             chatbot = gr.Chatbot(
                                 label="Security Tutor",
                                 height=380,
