@@ -107,7 +107,7 @@ async def run_vapt_agent_with_callback(
     report_file_path = None
     
     async with ClaudeSDKClient(options=options) as client:
-        update_progress(f"✅ Connected to Claude SDK ({model_name})")
+        update_progress(f"✅ Connected to Claude SDK ")
         update_progress(f"🎯 Testing endpoint: {api_endpoint}")
         
         # Construct the query for the agent

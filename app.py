@@ -1,197 +1,178 @@
-"""
-Gradio Web Interface for VAPT Agent.
+# Gradio Web Interface for VAPT Agent
 
-This module provides a user-friendly web interface for the VAPT (Vulnerability 
-Assessment and Penetration Testing) agent, allowing users to:
-- Input API endpoint, HTTP method, and API key
-- View real-time progress of security testing
-- Download the generated security report
+"""
+This module provides a user‑friendly Gradio UI for the VAPT (Vulnerability Assessment and Penetration Testing) agent.
+Features:
+- Input API endpoint, HTTP method, and optional API key
+- Real‑time progress streaming
+- Downloadable Markdown report
+- Visual Dashboard (risk gauge & severity pie chart)
+- AI Security Tutor (interactive Q&A about the report)
 """
 
 import asyncio
 import gradio as gr
 from datetime import datetime
-from pathlib import Path
-from typing import Optional, Generator
-import json
 import threading
 import time
+from typing import Optional, Generator, List, Tuple
 
 from vapt_agent import run_vapt_agent_with_callback
 from config import VAPTConfig
+from dashboard_utils import (
+    parse_vapt_report,
+    calculate_risk_score,
+    create_severity_chart,
+    create_risk_gauge,
+)
+from ai_tutor import get_tutor
 
+# ---------------------------------------------------------------------------
+# Helper: run the VAPT agent and stream updates to Gradio
+# ---------------------------------------------------------------------------
 
 def run_security_test(
     api_endpoint: str,
     http_method: str,
     api_key: Optional[str] = None,
-) -> Generator:
+) -> Generator[Tuple[str, str, str], None, None]:
+    """Yield progress, report markdown and report file path for Gradio.
+
+    The function validates inputs, starts the VAPT agent in a background thread,
+    and periodically yields any new progress messages.
     """
-    Run VAPT security test and yield updates for Gradio UI.
-    
-    Args:
-        api_endpoint: The API endpoint to test
-        http_method: HTTP method (GET, POST, PUT, DELETE, PATCH)
-        api_key: Optional API key for authentication
-        
-    Yields:
-        Tuple of (progress_text, report_markdown, report_file_path)
-    """
-    
-    # Validation
+    # ---------- Validation ----------
     if not api_endpoint or not api_endpoint.strip():
         yield (
             "❌ Error: API endpoint is required",
             "## Error\n\nPlease provide a valid API endpoint URL.",
-            None
+            None,
         )
         return
-    
     if not api_endpoint.startswith(("http://", "https://")):
         yield (
             "❌ Error: Invalid URL format",
             "## Error\n\nAPI endpoint must start with `http://` or `https://`.",
-            None
+            None,
         )
         return
-    
-    # Initialize progress
-    progress_messages = []
-    
-    def add_progress(message: str):
-        """Helper to add and format progress messages."""
-        progress_messages.append(f"[{datetime.now().strftime('%H:%M:%S')}] {message}")
-        return "\n".join(progress_messages)
-    
-    # Start testing
+
+    # ---------- Progress handling ----------
+    progress_messages: List[str] = []
+    lock = threading.Lock()
+
+    def add_progress(msg: str) -> str:
+        with lock:
+            progress_messages.append(f"[{datetime.now().strftime('%H:%M:%S')}] {msg}")
+            return "\n".join(progress_messages)
+
+    def progress_callback(msg: str):
+        with lock:
+            progress_messages.append(f"[{datetime.now().strftime('%H:%M:%S')}] {msg}")
+
+    # Initial message
     yield (
         add_progress("🚀 Initializing VAPT Agent..."),
         "## Starting Security Test\n\nPlease wait while we assess your API endpoint...",
-        None
+        None,
     )
-    
-    # Prepare headers
-    headers = {
-        "Content-Type": "application/json",
-        "User-Agent": "VAPT-Agent/1.0"
-    }
-    
+
+    # Prepare request headers
+    headers = {"Content-Type": "application/json", "User-Agent": "VAPT-Agent/1.0"}
     if api_key and api_key.strip():
         headers["Authorization"] = f"Bearer {api_key.strip()}"
         yield (
-            add_progress("🔑 API key provided - will test authenticated endpoints"),
+            add_progress("🔑 API key provided – will test authenticated endpoints"),
             "## Starting Security Test\n\nPreparing to test with authentication...",
-            None
+            None,
         )
-    
-    # Progress callback for agent (thread-safe)
-    progress_lock = threading.Lock()
-    
-    def progress_callback(message: str):
-        """Callback to receive progress updates from agent."""
-        with progress_lock:
-            progress_messages.append(f"[{datetime.now().strftime('%H:%M:%S')}] {message}")
-    
-    # Run the agent in a background thread
-    result_container = {"report_content": None, "report_file_path": None, "error": None, "done": False}
-    
-    def run_agent_thread():
-        """Run the agent in a separate thread."""
+
+    # ---------- Run agent in background thread ----------
+    result = {"report_content": None, "report_file_path": None, "error": None, "done": False}
+
+    def agent_worker():
         try:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
-            
-            report_content, report_file_path = loop.run_until_complete(
+            content, path = loop.run_until_complete(
                 run_vapt_agent_with_callback(
                     api_endpoint=api_endpoint,
                     method=http_method,
                     headers=headers,
-                    progress_callback=progress_callback
+                    progress_callback=progress_callback,
                 )
             )
-            
             loop.close()
-            
-            result_container["report_content"] = report_content
-            result_container["report_file_path"] = report_file_path
-            
+            result["report_content"] = content
+            result["report_file_path"] = path
         except asyncio.TimeoutError:
-            result_container["error"] = "Timeout: Security test took too long"
+            result["error"] = "Timeout: Security test took too long"
         except Exception as e:
-            result_container["error"] = str(e)
+            result["error"] = str(e)
         finally:
-            result_container["done"] = True
-    
-    # Start the agent thread
-    yield (
-        add_progress("🔌 Connecting to Claude Agent SDK..."),
-        "## Starting Security Test\n\nConnecting to Claude Agent...",
-        None
-    )
-    
-    agent_thread = threading.Thread(target=run_agent_thread, daemon=True)
-    agent_thread.start()
-    
-    # Poll for progress updates while agent is running
-    last_message_count = len(progress_messages)
-    
-    while not result_container["done"]:
-        time.sleep(0.5)  # Poll every 500ms
-        
-        # Check if there are new messages
-        with progress_lock:
-            current_message_count = len(progress_messages)
-            if current_message_count > last_message_count:
-                # New messages available, yield update
+            result["done"] = True
+
+    # Connect to Claude (or chosen model) – just a placeholder progress update
+    yield (add_progress("🔌 Connecting to LLM backend..."), "## Starting Security Test\n\nConnecting...", None)
+    threading.Thread(target=agent_worker, daemon=True).start()
+
+    # ---------- Poll for updates ----------
+    last_len = 0
+    while not result["done"]:
+        time.sleep(0.5)
+        with lock:
+            if len(progress_messages) > last_len:
                 yield (
                     "\n".join(progress_messages),
-                    "## Security Test in Progress\n\nPlease wait while the agent performs security testing...",
-                    None
+                    "## Security Test in Progress\n\nPlease wait while the agent performs testing...",
+                    None,
                 )
-                last_message_count = current_message_count
-    
-    # Agent finished, handle results
-    if result_container["error"]:
-        error_msg = result_container["error"]
-        if "Timeout" in error_msg:
+                last_len = len(progress_messages)
+
+    # ---------- Final handling ----------
+    if result["error"]:
+        err = result["error"]
+        if "Timeout" in err:
             yield (
-                add_progress(f"⏱️ {error_msg}"),
-                "## Error\n\n**Timeout Error**\n\nThe security assessment exceeded the timeout limit. This might happen with slow APIs or extensive testing.",
-                None
+                add_progress(f"⏱️ {err}"),
+                "## Error\n\n**Timeout Error**\n\nThe assessment exceeded the allowed time.",
+                None,
             )
         else:
             yield (
-                add_progress(f"❌ Error: {error_msg}"),
-                f"## Error\n\n**Exception Occurred**\n\n```\n{error_msg}\n```\n\nPlease check your configuration and try again.",
-                None
+                add_progress(f"❌ Error: {err}"),
+                f"## Error\n\n**Exception Occurred**\n\n```\n{err}\n```\n\nPlease check configuration and retry.",
+                None,
             )
     else:
-        # Success
-        report_content = result_container["report_content"]
-        report_file_path = result_container["report_file_path"]
-        
+        # Success – return report and file path
         yield (
             add_progress("✅ Security assessment completed successfully!"),
-            report_content if report_content else "## Error\n\nNo report was generated.",
-            report_file_path
+            result["report_content"] or "## Error\n\nNo report was generated.",
+            result["report_file_path"],
         )
 
+# ---------------------------------------------------------------------------
+# Gradio UI construction
+# ---------------------------------------------------------------------------
 
-def create_gradio_interface():
-    """Create and configure the Gradio interface."""
-    
-    with gr.Blocks(title="VAPT Agent - API Security Testing") as interface:
-        
-        gr.Markdown("# 🛡️ VAPT Agent - API Security Testing")
-        
+def create_gradio_interface() -> gr.Blocks:
+    with gr.Blocks(title="VAPT Agent") as iface:
+
+        gr.Markdown("""
+        # 🛡️ VAPT Agent – AI‑Powered API Security Testing
+        This tool automatically generates an OpenAPI spec via Postman MCP and then runs a full VAPT scan.
+        """)
+
+        # Header – two columns describing the workflow and tests
         with gr.Row():
             with gr.Column(scale=1):
                 gr.Markdown(
                     """
-                    **Two-Step Automated Security Testing:**
+                    **Two‑Step Automated Security Testing:**
                     
-                    1️⃣ **API Spec Generation** - Uses Postman MCP Server to auto-discover and document your API  
-                    2️⃣ **VAPT Testing** - Runs comprehensive security tests using custom MCP tools
+                    1️⃣ **API Spec Generation** – Postman MCP auto‑discovers and documents the API.
+                    2️⃣ **VAPT Testing** – Custom MCP tools perform comprehensive security checks.
                     """
                 )
             with gr.Column(scale=1):
@@ -199,76 +180,110 @@ def create_gradio_interface():
                     """
                     **Security Tests Performed:**
                     
-                    ✓ SQL Injection • XSS • Auth/Authorization  
+                    ✓ SQL Injection • XSS • Auth/Authorization
                     ✓ Rate Limiting • CORS Policy • Security Headers
                     """
                 )
-        
+
+        # Input section
         with gr.Row():
             with gr.Column(scale=1):
                 gr.Markdown("### 📋 API Configuration")
-                
                 api_endpoint = gr.Textbox(
                     label="API Endpoint URL",
                     placeholder="https://api.example.com/v1/users",
                     value="https://jsonplaceholder.typicode.com/posts",
-                    info="The complete URL of the API endpoint to test"
+                    info="Full URL of the API endpoint to test",
                 )
-                
                 http_method = gr.Dropdown(
                     label="HTTP Method",
                     choices=["GET", "POST", "PUT", "DELETE", "PATCH"],
                     value="GET",
-                    info="Select the HTTP method for the endpoint"
+                    info="Select the HTTP method for the endpoint",
                 )
-                
                 api_key = gr.Textbox(
                     label="API Key (Optional)",
                     placeholder="Enter your API key or Bearer token",
                     type="password",
-                    info="If your API requires authentication, provide the key here"
+                    info="If the API requires authentication, provide the key here",
                 )
-                
                 with gr.Row():
                     submit_btn = gr.Button("🚀 Start Security Test", variant="primary", size="lg")
                     clear_btn = gr.Button("🔄 Clear", variant="secondary")
-                
+                # Full‑width disclaimer
                 gr.HTML(
-                    "<div style='width: 100%; padding: 8px; background-color: #fff3cd; border-left: 4px solid #ffc107; margin: 8px 0;'>⚠️ <strong>Disclaimer:</strong> This tool is for authorized security testing only. Always obtain proper authorization before testing.</div>"
+                    "<div style='width:100%; padding:8px; background:#fff3cd; border-left:4px solid #ffc107; margin:8px 0;'>"
+                    "⚠️ <strong>Disclaimer:</strong> This tool is for authorized security testing only. "
+                    "Always obtain proper authorization before testing."
+                    "</div>"
                 )
-            
             with gr.Column(scale=2):
                 gr.Markdown("### 📊 Test Results")
-                
+                # Live progress tab
                 with gr.Tab("Live Progress"):
                     progress_output = gr.Textbox(
                         label="Agent Activity",
                         lines=15,
                         max_lines=20,
                         interactive=False,
-                        placeholder="Agent activity will appear here..."
+                        placeholder="Agent activity will appear here...",
                     )
-                
+                # Report tab (download first, then markdown)
                 with gr.Tab("Security Report"):
                     report_file = gr.File(
                         label="📥 Download Report (.md)",
                         interactive=False,
-                        visible=True
+                        visible=True,
                     )
-                    
                     report_output = gr.Markdown(
                         value="Security report will appear here after the test completes...",
-                        label="VAPT Report"
+                        label="VAPT Report",
                     )
-        
-        # Event handlers
+                # Dashboard tab
+                with gr.Tab("📊 Dashboard"):
+                    gr.Markdown("### Security Overview")
+                    with gr.Row():
+                        with gr.Column(scale=1):
+                            risk_gauge = gr.Plot(label="Risk Score")
+                        with gr.Column(scale=1):
+                            severity_pie = gr.Plot(label="Vulnerability Distribution")
+
+                    top_findings = gr.Markdown("Run a security test to see results...")
+                # AI Tutor tab
+                with gr.Tab("🎓 AI Security Tutor"):
+                    gr.Markdown(
+                        """
+                        ### Ask Questions About Your Security Report
+                        Get expert explanations, remediation steps and best‑practice advice.
+                        """
+                    )
+                    chatbot = gr.Chatbot(label="Security Tutor", height=400)
+                    with gr.Row():
+                        tutor_input = gr.Textbox(
+                            label="Your Question",
+                            placeholder="e.g., What is SQL injection and how do I fix it?",
+                            lines=2,
+                            scale=4,
+                        )
+                        tutor_btn = gr.Button("Ask", variant="primary", scale=1)
+                    gr.Markdown(
+                        """
+                        **Example Questions:**
+                        - What is the most critical issue in my report?
+                        - How do I fix CORS policy issues?
+                        - Explain SQL injection in simple terms
+                        - What are the top 3 priorities to fix?
+                        """
+                    )
+        # -------------------------------------------------------------------
+        # Event bindings
+        # -------------------------------------------------------------------
         submit_btn.click(
             fn=run_security_test,
             inputs=[api_endpoint, http_method, api_key],
             outputs=[progress_output, report_output, report_file],
-            show_progress=True
+            show_progress=True,
         )
-        
         clear_btn.click(
             fn=lambda: (
                 "https://jsonplaceholder.typicode.com/posts",
@@ -276,50 +291,63 @@ def create_gradio_interface():
                 "",
                 "",
                 "Security report will appear here after the test completes...",
-                None
+                None,
             ),
             inputs=[],
-            outputs=[api_endpoint, http_method, api_key, progress_output, report_output, report_file]
+            outputs=[api_endpoint, http_method, api_key, progress_output, report_output, report_file],
         )
-    
-    return interface
+        # Dashboard updates – triggered after a successful report
+        def update_dashboard(report_md: str):
+            data = parse_vapt_report(report_md)
+            sev = data["severities"]
+            risk = calculate_risk_score(sev)
+            return (
+                create_risk_gauge(risk),
+                create_severity_chart(sev),
+                "\n".join(data.get("findings", [])[:5]) if data.get("findings") else "No findings detected.",
+            )
+        report_output.change(
+            fn=update_dashboard,
+            inputs=[report_output],
+            outputs=[risk_gauge, severity_pie, top_findings],
+        )
+        # AI Tutor interaction
+        def tutor_respond(question: str, history: List[Tuple[str, str]], report_md: str):
+            tutor = get_tutor()
+            answer = tutor.chat(question, report_md, history)
+            history.append((question, answer))
+            return history, ""
+        tutor_btn.click(
+            fn=tutor_respond,
+            inputs=[tutor_input, chatbot, report_output],
+            outputs=[chatbot, tutor_input],
+        )
+    return iface
 
+# ---------------------------------------------------------------------------
+# Main entry point
+# ---------------------------------------------------------------------------
 
 def main():
-    """Launch the Gradio interface."""
-    
     print("=" * 80)
     print("VAPT Agent - Gradio Web Interface")
     print("=" * 80)
-    
     try:
-        # Validate configuration
-        config = VAPTConfig()
+        cfg = VAPTConfig()
         print(f"✓ Configuration loaded successfully")
-        print(f"  Provider: {'AWS Bedrock' if config.use_bedrock else 'Anthropic API'}")
-        print(f"  Model: {config.model_name}")
-        if config.use_bedrock:
-            print(f"  Region: {config.aws_region}")
+        print(f"  Provider: {'AWS Bedrock' if cfg.use_bedrock else 'Anthropic API'}")
+
+        if cfg.use_bedrock:
+            print(f"  Region: {cfg.aws_region}")
         print()
-        
-    except Exception as e:
-        print(f"❌ Configuration error: {e}")
+    except Exception as exc:
+        print(f"❌ Configuration error: {exc}")
         print("Please check your .env file and ensure all required variables are set.")
         return
-    
-    # Create and launch interface
-    interface = create_gradio_interface()
-    
+    iface = create_gradio_interface()
     print("Starting Gradio server...")
     print("=" * 80)
-    
-    interface.launch(
-        server_name="0.0.0.0",
-        server_port=7861,
-        share=False,
-        inbrowser=True
-    )
-
+    iface.launch(server_name="0.0.0.0", server_port=7861, share=False, inbrowser=True)
 
 if __name__ == "__main__":
     main()

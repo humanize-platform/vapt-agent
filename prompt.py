@@ -64,6 +64,13 @@ When you are given an endpoint and headers, you MUST:
 
      ## 1. Executive Summary
      - High-level overview and key risks.
+     
+     ### Key Findings Summary:
+     - **Critical Vulnerabilities:** [Count]
+     - **High Severity Vulnerabilities:** [Count]
+     - **Medium Severity Vulnerabilities:** [Count]
+     - **Low Severity Vulnerabilities:** [Count]
+     - **Informational Issues:** [Count]
 
      ## 2. API Specification
      - (Paste the full spec you built using Postman MCP, as described above.)

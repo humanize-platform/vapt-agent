@@ -31,7 +31,8 @@ class VAPTConfig:
         # ====================================================================
         if self.use_bedrock:
             # Default to Bedrock model identifier
-            default_model = "global.anthropic.claude-sonnet-4-5-20250929-v1:0"
+            # default_model = "global.anthropic.claude-sonnet-4-5-20250929-v1:0"
+            default_model = "global.anthropic.claude-haiku-4-5-20251001-v1:0"
         else:
             # Default to Anthropic API model
             default_model = "claude-sonnet-4-20250514"
