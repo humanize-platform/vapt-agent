@@ -230,8 +230,8 @@ def create_gradio_interface() -> gr.Blocks:
 
                     api_endpoint = gr.Textbox(
                         label="API Endpoint URL",
-                        placeholder="https://api.example.com/v1/users",
-                        value="https://jsonplaceholder.typicode.com/posts",
+                        placeholder="https://sandbox.api.sap.com/SAPCALM/calm-tasks/v1/tasks?projectId=111",
+                        value="https://sandbox.api.sap.com/SAPCALM/calm-tasks/v1/tasks?projectId=111",
                         info="Full URL of the API endpoint to test",
                     )
                     http_method = gr.Dropdown(
@@ -244,6 +244,7 @@ def create_gradio_interface() -> gr.Blocks:
                         label="API Key (Optional)",
                         placeholder="Enter your API key or Bearer token",
                         type="password",
+                        value="Ww9aGPGeGoDGCFetcBtsaEtGOpGSUNXp",
                         info="If the API requires authentication, provide the key here",
                     )
                     with gr.Row():
@@ -358,7 +359,7 @@ def create_gradio_interface() -> gr.Blocks:
         # Reset
         clear_btn.click(
             fn=lambda: (
-                "https://jsonplaceholder.typicode.com/posts",
+                "https://sandbox.api.sap.com/SAPCALM/calm-tasks/v1/tasks?projectId=111",
                 "GET",
                 "",
                 "",

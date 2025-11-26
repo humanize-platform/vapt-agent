@@ -47,7 +47,7 @@ class VAPTConfig:
         # Test API Configuration
         # ====================================================================
         self.test_api_endpoint = os.getenv(
-            "TEST_API_ENDPOINT", "https://jsonplaceholder.typicode.com/posts"
+            "TEST_API_ENDPOINT", "https://sandbox.api.sap.com/SAPCALM/calm-tasks/v1/tasks?projectId=111"
         )
         self.test_api_method = os.getenv("TEST_API_METHOD", "GET")
         self.test_api_key = os.getenv("TEST_API_KEY", "")
