@@ -97,7 +97,7 @@ async def run_vapt_agent_with_callback(
         ],
         max_turns=100,
         model=model_name,
-        permission_mode="bypassPermissions",
+        #permission_mode="bypassPermissions",
         cwd=Path(working_directory) if working_directory else Path.cwd(),
     )
 

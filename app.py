@@ -51,11 +51,12 @@ def run_security_test(
     api_endpoint: str,
     http_method: str,
     api_key: Optional[str] = None,
-) -> Generator[Tuple[str, str, str], None, None]:
-    """Yield progress, report markdown and report file path for Gradio.
+) -> Generator[Tuple[str, str, str, gr.Button], None, None]:
+    """Yield progress, report markdown, report file path, and button state for Gradio.
 
     The function validates inputs, starts the VAPT agent in a background thread,
-    and periodically yields any new progress messages.
+    and periodically yields any new progress messages. The button is disabled during
+    the test and re-enabled when complete.
     """
     # ---------- Validation ----------
     if not api_endpoint or not api_endpoint.strip():
@@ -63,6 +64,7 @@ def run_security_test(
             "❌ Error: API endpoint is required",
             "## Error\n\nPlease provide a valid API endpoint URL.",
             None,
+            gr.Button(interactive=True),
         )
         return
     if not api_endpoint.startswith(("http://", "https://")):
@@ -70,6 +72,7 @@ def run_security_test(
             "❌ Error: Invalid URL format",
             "## Error\n\nAPI endpoint must start with `http://` or `https://`.",
             None,
+            gr.Button(interactive=True),
         )
         return
 
@@ -91,6 +94,7 @@ def run_security_test(
         add_progress("🚀 Initializing VAPT Agent..."),
         "## Starting Security Test\n\nPlease wait while we assess your API endpoint...",
         None,
+        gr.Button(interactive=False),
     )
 
     # Prepare request headers
@@ -101,6 +105,7 @@ def run_security_test(
             add_progress("🔑 API key provided – will test authenticated endpoints"),
             "## Starting Security Test\n\nPreparing to test with authentication...",
             None,
+            gr.Button(interactive=False),
         )
 
     # ---------- Run agent in background thread ----------
@@ -138,6 +143,7 @@ def run_security_test(
         add_progress("🔌 Connecting to security engine..."),
         "## Starting Security Test\n\nConnecting...",
         None,
+        gr.Button(interactive=False),
     )
     threading.Thread(target=agent_worker, daemon=True).start()
 
@@ -151,6 +157,7 @@ def run_security_test(
                     "\n".join(progress_messages),
                     "## Security Test in Progress\n\nPlease wait while the agent performs testing...",
                     None,
+                    gr.Button(interactive=False),
                 )
                 last_len = len(progress_messages)
 
@@ -162,12 +169,14 @@ def run_security_test(
                 add_progress(f"⏱️ {err}"),
                 "## Error\n\n**Timeout Error**\n\nThe assessment exceeded the allowed time.",
                 None,
+                gr.Button(interactive=True),
             )
         else:
             yield (
                 add_progress(f"❌ Error: {err}"),
                 f"## Error\n\n**Exception Occurred**\n\n```\n{err}\n```\n\nPlease check configuration and retry.",
                 None,
+                gr.Button(interactive=True),
             )
     else:
         # Success – return report and file path
@@ -175,6 +184,7 @@ def run_security_test(
             add_progress("✅ Security assessment completed successfully!"),
             result["report_content"] or "## Error\n\nNo report was generated.",
             result["report_file_path"],
+            gr.Button(interactive=True),
         )
 
 
@@ -352,7 +362,7 @@ def create_gradio_interface() -> gr.Blocks:
         submit_btn.click(
             fn=run_security_test,
             inputs=[api_endpoint, http_method, api_key],
-            outputs=[progress_output, report_output, report_file],
+            outputs=[progress_output, report_output, report_file, submit_btn],
             show_progress=True,
         )
 
@@ -433,13 +443,13 @@ def create_gradio_interface() -> gr.Blocks:
             new_history.append({"role": "user", "content": question})
             new_history.append({"role": "assistant", "content": answer})
 
-            # Clear the input textbox
-            return new_history, ""
+            # Clear the input textbox and re-enable the button
+            return new_history, "", gr.Button(interactive=True)
 
         tutor_btn.click(
             fn=tutor_respond,
             inputs=[tutor_input, chatbot, report_output],
-            outputs=[chatbot, tutor_input],
+            outputs=[chatbot, tutor_input, tutor_btn],
         )
 
     return iface
@@ -469,8 +479,8 @@ def main():
     iface = create_gradio_interface()
     print("Starting Gradio server...")
     print("=" * 80)
-    iface.launch(server_name="0.0.0.0", server_port=7861, share=True, inbrowser=True)
-
+    #iface.launch(server_name="0.0.0.0", server_port=7861, share=True, inbrowser=True)
+    iface.launch(server_name="0.0.0.0")
 
 if __name__ == "__main__":
     main()
